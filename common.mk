@@ -1,4 +1,6 @@
 CC=clang
+LDFLAGS="-L/opt/homebrew/opt/llvm/lib"
+CPPFLAGS="-I/opt/homebrew/opt/llvm/include"
 CFLAGS=-Wall \
 	-Wextra \
 	-Wconversion \
@@ -14,6 +16,7 @@ CFLAGS=-Wall \
 	-g \
 	-O0
 
+
 ifndef VERBOSE
 MAKEFLAGS += --no-print-directory
 endif
@@ -25,7 +28,7 @@ SOURCES = $(shell echo ./*.c ../utils/*/lib.c | xargs -n 1 realpath 2>/dev/null 
 
 $(BIN_DIR)/test: $(SOURCES)
 	@mkdir -p $(BIN_DIR)
-	@$(CC) $(CFLAGS) -o $@ $^
+	@$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -o $@ $^
 
 test: $(BIN_DIR)/test
 # ASan allocates memory before malloc which causes the macOS malloc to complain about being unable

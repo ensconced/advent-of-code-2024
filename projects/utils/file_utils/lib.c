@@ -4,7 +4,7 @@
 #include <sys/types.h>
 
 long get_file_size(FILE *file) {
-  long originalPosition = ftell(file);
+  long original_position = ftell(file);
   if (fseek(file, 0, SEEK_END) != 0) {
     printf("failed to seek to end of file\n");
     exit(EXIT_FAILURE);
@@ -12,7 +12,7 @@ long get_file_size(FILE *file) {
 
   long result = ftell(file);
 
-  if (fseek(file, originalPosition, SEEK_SET) != 0) {
+  if (fseek(file, original_position, SEEK_SET) != 0) {
     printf("failed to seek to original position of file\n");
     exit(EXIT_FAILURE);
   }
@@ -25,18 +25,18 @@ char *read_text_file(char *path) {
     printf("file could not be opened\n");
     exit(EXIT_FAILURE);
   }
-  unsigned long fileSize = (unsigned long)get_file_size(file);
-  char *buffer = malloc(fileSize + 1);
+  unsigned long file_size = (unsigned long)get_file_size(file);
+  char *buffer = malloc(file_size + 1);
   if (buffer == 0) {
     printf("failed to allocate\n");
     exit(EXIT_FAILURE);
   }
-  size_t readChars = fread(buffer, 1, fileSize, file);
-  if (readChars != fileSize) {
+  size_t read_chars = fread(buffer, 1, file_size, file);
+  if (read_chars != file_size) {
     printf("didn't read as many chars as expected\n");
     exit(EXIT_FAILURE);
   }
-  buffer[fileSize] = '\0';
+  buffer[file_size] = '\0';
 
   if (fclose(file) != 0) {
     printf("failed to close file\n");

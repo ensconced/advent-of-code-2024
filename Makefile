@@ -11,5 +11,4 @@ new:
 	cp -R ./projects/template ./projects/$(name)
 
 clean:
-	rm -rf ./projects/*/bin
-
+	find . -type d -name bin -prune -exec rm -r {} \;
