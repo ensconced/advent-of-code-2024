@@ -17,10 +17,10 @@ sorted_lists get_sorted_lists(char *input_file) {
   int *list_b = malloc(lines.line_count * sizeof(int));
 
   for (size_t i = 0; i < lines.line_count; i++) {
-    char *part_a = lines.lines[i];
-    int a = (int)take_number(&part_a);
-    maybe_take_whitespace(&part_a);
-    int b = (int)take_number(&part_a);
+    char *line = lines.lines[i];
+    int a = (int)take_number(&line);
+    maybe_take_whitespace(&line);
+    int b = (int)take_number(&line);
     list_a[i] = a;
     list_b[i] = b;
   }
