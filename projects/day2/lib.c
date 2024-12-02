@@ -1,100 +1,87 @@
 #include "./lib.h"
 #include "./parser.h"
 #include <stdbool.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 bool interval_is_safe(unsigned long prev, unsigned long curr, bool increasing) {
   int a = (int)prev;
   int b = (int)curr;
-  int diff = increasing ? b - a : a - b;
-  return (diff <= 3 && diff >= 1);
+  int interval = increasing ? b - a : a - b;
+  return (interval <= 3 && interval >= 1);
 }
 
-bool part1_line_is_safe(parsed_line line) {
-  if (line.length < 2)
+bool interval_can_be_made_safe_using_dampener(size_t i, parsed_line line,
+                                              bool increasing) {
+  unsigned long prev = line.numbers[i - 1];
+  unsigned long curr = line.numbers[i];
+
+  // first, check if the following interval is also dodgy. if so, our only
+  // chance is to remove the node in the middle of the two dodgy intervals...
+
+  // if not, we can remove either the node before the interval or the node
+  // after the interval - whichever doesn't create another bad interval...
+
+  // if we're looking at the first or last interval, it's always fixable by
+  // dropping the first or last element.
+  // if (*j == 1 || *j == line.length - 1) {
+  //   (*dampeners)--;
+  //   return true;
+  // }
+
+  // can we fix it by skipping prev?
+  unsigned long prevprev = line.numbers[i - 2];
+  if (interval_is_safe(prevprev, curr, increasing)) {
     return true;
-
-  bool increasing = (int)line.numbers[1] - (int)line.numbers[0] > 0;
-
-  for (size_t i = 1; i < line.length; i++) {
-    if (!interval_is_safe(line.numbers[i - 1], line.numbers[i], increasing)) {
-      return false;
-    }
-  }
-  return true;
-}
-
-int part1(char *input_path) {
-  parsed_input input = parse_input(input_path);
-
-  int safe_lines = 0;
-  for (size_t i = 0; i < input.length; i++) {
-    parsed_line line = input.lines[i];
-    if (part1_line_is_safe(line)) {
-      safe_lines++;
-    }
   }
 
-  return safe_lines;
-}
-
-bool part2_make_interval_safe(size_t *j, parsed_line line, bool increasing,
-                              int *dampeners) {
-  unsigned long prev = line.numbers[*j - 1];
-  unsigned long curr = line.numbers[*j];
-
-  if (interval_is_safe(prev, curr, increasing))
+  // can we fix it by skipping curr?
+  unsigned long next = line.numbers[i + 1];
+  if (interval_is_safe(prev, next, increasing)) {
+    (*j)++;
     return true;
-
-  if (*dampeners > 0) {
-    // if we're looking at the first or last interval, it's always fixable by
-    // dropping the first or last element
-    if (*j == 1 || *j == line.length - 1) {
-      (*dampeners)--;
-      return true;
-    }
-
-    // can we fix it by skipping prev?
-    unsigned long prevprev = line.numbers[*j - 2];
-    if (interval_is_safe(prevprev, curr, increasing)) {
-      (*dampeners)--;
-      return true;
-    }
-
-    // can we fix it by skipping curr?
-    unsigned long next = line.numbers[*j + 1];
-    if (interval_is_safe(prev, next, increasing)) {
-      (*dampeners)--;
-      (*j)++;
-      return true;
-    }
   }
 
   return false;
 }
 
-bool part2_line_is_safe(parsed_line line, bool increasing) {
+bool line_is_safe(parsed_line line, bool increasing, bool can_use_dampener) {
   if (line.length < 2)
     return true;
 
-  int dampeners = 1;
-  for (size_t j = 1; j < line.length; j++) {
-    if (!part2_make_interval_safe(&j, line, increasing, &dampeners))
-      return false;
+  for (size_t i = 1; i < line.length; i++) {
+    unsigned long prev = line.numbers[i - 1];
+    unsigned long curr = line.numbers[i];
+
+    if (interval_is_safe(prev, curr, increasing)) {
+      continue;
+    }
+
+    if (can_use_dampener &&
+        interval_can_be_made_safe_using_dampener(i, line, increasing)) {
+      can_use_dampener = false;
+      continue;
+    }
+
+    return false;
   }
   return true;
 }
 
-int part2(char *input_path) {
+int count_safe_lines(char *input_path, bool can_use_dampener) {
   parsed_input input = parse_input(input_path);
 
   int safe_lines = 0;
   for (size_t i = 0; i < input.length; i++) {
     parsed_line line = input.lines[i];
-    if (part2_line_is_safe(line, true) || part2_line_is_safe(line, false)) {
+    if (line_is_safe(line, true, can_use_dampener) ||
+        line_is_safe(line, false, can_use_dampener)) {
       safe_lines++;
     }
   }
 
   return safe_lines;
 }
+
+int part1(char *input_path) { return count_safe_lines(input_path, false); }
+int part2(char *input_path) { return count_safe_lines(input_path, true); }
