@@ -97,12 +97,10 @@ void test_maybe_take_whitespace(void) {
 void test_take_whitespace_separated_numeric_strings(void) {
   char *str1 = "123 \t \t 456 \t \t 789 foo bar";
   static const size_t result_buffer_capacity = 4;
-  static const size_t number_buffer_capacity = 16;
   size_t result_buffer_len;
   char *result_buffer[result_buffer_capacity];
   take_whitespace_separated_numeric_strings(
-      &str1, result_buffer, &result_buffer_len, result_buffer_capacity,
-      number_buffer_capacity);
+      &str1, result_buffer, &result_buffer_len, result_buffer_capacity);
   assert(strcmp(str1, "foo bar") == 0);
   assert(result_buffer_len == 3);
 
@@ -121,12 +119,10 @@ void test_take_whitespace_separated_numeric_strings(void) {
 void test_take_whitespace_separated_numbers(void) {
   char *str = "123  456  789";
   static const size_t result_buffer_capacity = 4;
-  static const size_t individual_number_buffer_capacity = 8;
   unsigned long result_buffer[result_buffer_capacity];
   size_t result_buffer_len;
   take_whitespace_separated_numbers(&str, result_buffer, &result_buffer_len,
-                                    result_buffer_capacity,
-                                    individual_number_buffer_capacity);
+                                    result_buffer_capacity);
 
   enum { expected_len = 3 };
   unsigned long expected_result[expected_len] = {123, 456, 789};
