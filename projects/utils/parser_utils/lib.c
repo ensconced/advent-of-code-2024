@@ -78,13 +78,15 @@ void take_alphanumeric_string(char **str_pointer, char *result_buffer,
                                 result_buffer_capacity, isalnum);
 }
 
-void maybe_take_numeric_string(char **str_pointer, char *result_buffer,
+bool maybe_take_numeric_string(char **str_pointer, char *result_buffer,
                                size_t result_buffer_capacity) {
   char first_digit = (*str_pointer)[0];
   if (isdigit(first_digit)) {
     take_numeric_string(str_pointer, result_buffer, result_buffer_capacity);
+    return true;
   } else {
     result_buffer[0] = '\0';
+    return false;
   }
 }
 
@@ -93,6 +95,17 @@ unsigned long take_number(char **str_pointer) {
   char buffer[buffer_capacity];
   take_numeric_string(str_pointer, buffer, buffer_capacity);
   return strtoul(buffer, 0, 10);
+}
+
+bool maybe_take_number(char **str_pointer, unsigned long *result) {
+  static const size_t buffer_capacity = 32;
+  char buffer[buffer_capacity];
+  if (maybe_take_numeric_string(str_pointer, buffer, buffer_capacity)) {
+    *result = strtoul(buffer, 0, 10);
+    return true;
+  } else {
+    return false;
+  }
 }
 
 void take_whitespace_separated_numeric_strings(char **str_pointer,

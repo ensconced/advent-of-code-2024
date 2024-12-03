@@ -10,8 +10,9 @@ void take_numeric_string(char **str_pointer, char *result_buffer,
 void take_alphanumeric_string(char **str_pointer, char *result_buffer,
                               size_t result_buffer_capacity);
 unsigned long take_number(char **str_pointer);
-void maybe_take_numeric_string(char *const *str_pointer, char *result_buffer,
+bool maybe_take_numeric_string(char *const *str_pointer, char *result_buffer,
                                size_t result_buffer_capacity);
+bool maybe_take_number(char **str_pointer, unsigned long *result);
 void take_whitespace_separated_numeric_strings(char **str_pointer,
                                                char **result_buffer,
                                                size_t *result_buffer_len,
