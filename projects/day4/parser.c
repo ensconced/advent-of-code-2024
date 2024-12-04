@@ -2,6 +2,7 @@
 #include "../utils/file_utils/lib.h"
 #include "../utils/parser_utils/lib.h"
 #include "./lib.h"
+#include <ctype.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -9,8 +10,11 @@
 
 char *without_whitespace(char *str) {
   char *copy = malloc(sizeof(char) * (strlen(str) + 1));
+  size_t copy_idx = 0;
   for (size_t i = 0; i <= strlen(str); i++) {
-    copy[i] = str[i];
+    if (!isspace(str[i])) {
+      copy[copy_idx++] = str[i];
+    }
   }
   return copy;
 }
