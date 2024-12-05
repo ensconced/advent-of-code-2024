@@ -2,10 +2,10 @@
 #include "./lib.h"
 #include <stdlib.h>
 
-typedef struct edge {
+typedef struct ordered_pair {
   unsigned long before;
   unsigned long after;
-} edge;
+} ordered_pair;
 
 typedef struct update {
   unsigned long *values;
@@ -13,8 +13,8 @@ typedef struct update {
 } update;
 
 typedef struct parsed_input {
-  edge *edges;
-  size_t edges_len;
+  ordered_pair *pairs;
+  size_t pairs_len;
   update *updates;
   size_t updates_len;
 } parsed_input;

@@ -8,8 +8,8 @@
 
 parsed_input parse_input(char *input_path) {
   FileLines filelines = read_file_lines(input_path);
-  edge *edges = malloc(sizeof(edge) * filelines.line_count);
-  size_t edges_len = 0;
+  ordered_pair *pairs = malloc(sizeof(ordered_pair) * filelines.line_count);
+  size_t pairs_len = 0;
   update *updates = malloc(sizeof(update) * filelines.line_count);
   size_t updates_len = 0;
 
@@ -22,7 +22,7 @@ parsed_input parse_input(char *input_path) {
     unsigned long before = take_number(&line);
     take_string("|", &line);
     unsigned long after = take_number(&line);
-    edges[edges_len++] = (edge){.before = before, .after = after};
+    pairs[pairs_len++] = (ordered_pair){.before = before, .after = after};
   }
   while (i < filelines.line_count) {
     char *line = filelines.lines[i++];
@@ -36,8 +36,8 @@ parsed_input parse_input(char *input_path) {
   }
 
   return (parsed_input){
-      .edges = edges,
-      .edges_len = edges_len,
+      .pairs = pairs,
+      .pairs_len = pairs_len,
       .updates = updates,
       .updates_len = updates_len,
   };
