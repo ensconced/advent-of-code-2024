@@ -45,12 +45,12 @@ void test_take_alphanumeric_string(void) {
   assert(strcmp(buffer, "foo") == 0);
   assert(strcmp(str1, " 1234 1a2b3c4d") == 0);
 
-  maybe_take_whitespace(&str1);
+  maybe_take_from_charset(&str1, " ");
   take_alphanumeric_string(&str1, buffer, buffer_capacity);
   assert(strcmp(buffer, "1234") == 0);
   assert(strcmp(str1, " 1a2b3c4d") == 0);
 
-  maybe_take_whitespace(&str1);
+  maybe_take_from_charset(&str1, " ");
   take_alphanumeric_string(&str1, buffer, buffer_capacity);
   assert(strcmp(buffer, "1a2b3c4d") == 0);
   assert(strcmp(str1, "") == 0);
@@ -82,47 +82,25 @@ void test_maybe_take_numeric_string(void) {
   assert(strcmp(str3, " foo bar") == 0);
 }
 
-void test_maybe_take_whitespace(void) {
+void test_maybe_take_from_charset(void) {
   char *str1 = " \t \t foo bar";
-  bool took1 = maybe_take_whitespace(&str1);
+  bool took1 = maybe_take_from_charset(&str1, " \t");
   assert(took1);
   assert(strcmp(str1, "foo bar") == 0);
 
   char *str2 = "foo bar";
-  bool took2 = maybe_take_whitespace(&str2);
+  bool took2 = maybe_take_from_charset(&str2, " \t");
   assert(!took2);
   assert(strcmp(str2, "foo bar") == 0);
 }
 
-void test_take_whitespace_separated_numeric_strings(void) {
-  char *str1 = "123 \t \t 456 \t \t 789 foo bar";
-  static const size_t result_buffer_capacity = 4;
-  size_t result_buffer_len;
-  char *result_buffer[result_buffer_capacity];
-  take_whitespace_separated_numeric_strings(
-      &str1, result_buffer, &result_buffer_len, result_buffer_capacity);
-  assert(strcmp(str1, "foo bar") == 0);
-  assert(result_buffer_len == 3);
-
-  char *expected_result1 = "123";
-  char *expected_result2 = "456";
-  char *expected_result3 = "789";
-
-  char *expected_result_buffer[] = {expected_result1, expected_result2,
-                                    expected_result3};
-
-  for (size_t i = 0; i < result_buffer_len; ++i) {
-    assert(strcmp(result_buffer[i], expected_result_buffer[i]) == 0);
-  }
-}
-
-void test_take_whitespace_separated_numbers(void) {
+void test_take_separated_numbers(void) {
   char *str = "123  456  789";
   static const size_t result_buffer_capacity = 4;
   unsigned long result_buffer[result_buffer_capacity];
   size_t result_buffer_len;
-  take_whitespace_separated_numbers(&str, result_buffer, &result_buffer_len,
-                                    result_buffer_capacity);
+  take_separated_numbers(&str, " ", result_buffer, &result_buffer_len,
+                         result_buffer_capacity);
 
   enum { expected_len = 3 };
   unsigned long expected_result[expected_len] = {123, 456, 789};
@@ -140,7 +118,6 @@ int main(void) {
   test_take_alphanumeric_string();
   test_take_number();
   test_maybe_take_numeric_string();
-  test_maybe_take_whitespace();
-  test_take_whitespace_separated_numeric_strings();
-  test_take_whitespace_separated_numbers();
+  test_maybe_take_from_charset();
+  test_take_separated_numbers();
 }

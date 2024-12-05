@@ -7,11 +7,12 @@
 
 #define MAX_UNSIGNED_LONG_LEN 10
 
-bool maybe_take_whitespace(char **str_pointer) {
+bool maybe_take_from_charset(char **str_pointer, char *charset) {
   size_t taken = 0;
   while (1) {
     char next_char = (*str_pointer)[taken];
-    if (isblank(next_char)) {
+    char *match = strchr(charset, next_char);
+    if (match != NULL && *match != '\0') {
       taken++;
     } else {
       break;
@@ -108,10 +109,10 @@ bool maybe_take_number(char **str_pointer, unsigned long *result) {
   }
 }
 
-void take_whitespace_separated_numeric_strings(char **str_pointer,
-                                               char **result_buffer,
-                                               size_t *result_buffer_len,
-                                               size_t result_buffer_capacity) {
+void take_separated_numeric_strings(char **str_pointer, char *separators,
+                                    char **result_buffer,
+                                    size_t *result_buffer_len,
+                                    size_t result_buffer_capacity) {
 
   *result_buffer_len = 0;
   while (1) {
@@ -122,7 +123,7 @@ void take_whitespace_separated_numeric_strings(char **str_pointer,
     }
     maybe_take_numeric_string(str_pointer, number_buffer,
                               MAX_UNSIGNED_LONG_LEN);
-    maybe_take_whitespace(str_pointer);
+    maybe_take_from_charset(str_pointer, separators);
     if (strlen(number_buffer)) {
       if ((*result_buffer_len) > result_buffer_capacity - 1) {
         printf("ran out of space in result buffer\n");
@@ -137,18 +138,17 @@ void take_whitespace_separated_numeric_strings(char **str_pointer,
   }
 }
 
-void take_whitespace_separated_numbers(char **str_pointer,
-                                       unsigned long *result_buffer,
-                                       size_t *result_buffer_len,
-                                       size_t result_buffer_capacity) {
+void take_separated_numbers(char **str_pointer, char *separators,
+                            unsigned long *result_buffer,
+                            size_t *result_buffer_len,
+                            size_t result_buffer_capacity) {
   char **string_array_buffer = malloc(result_buffer_capacity * sizeof(char *));
   if (string_array_buffer == 0) {
     printf("failed to allocate string array buffer\n");
     exit(EXIT_FAILURE);
   }
-  take_whitespace_separated_numeric_strings(str_pointer, string_array_buffer,
-                                            result_buffer_len,
-                                            result_buffer_capacity);
+  take_separated_numeric_strings(str_pointer, separators, string_array_buffer,
+                                 result_buffer_len, result_buffer_capacity);
 
   for (size_t i = 0; i < *result_buffer_len; ++i) {
     result_buffer[i] = strtoul(string_array_buffer[i], 0, 10);

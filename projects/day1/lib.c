@@ -19,7 +19,7 @@ sorted_lists get_sorted_lists(char *input_file) {
   for (size_t i = 0; i < lines.line_count; i++) {
     char *line = lines.lines[i];
     int a = (int)take_number(&line);
-    maybe_take_whitespace(&line);
+    maybe_take_from_charset(&line, " ");
     int b = (int)take_number(&line);
     list_a[i] = a;
     list_b[i] = b;

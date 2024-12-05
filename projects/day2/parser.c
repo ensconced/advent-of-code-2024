@@ -14,8 +14,8 @@ parsed_input parse_input(char *input_path) {
   for (size_t i = 0; i < file_lines.line_count; i++) {
     char *line = file_lines.lines[i];
     parsed_lines[i].numbers = malloc(sizeof(unsigned long) * MAX_LINE_LENGTH);
-    take_whitespace_separated_numbers(&line, parsed_lines[i].numbers,
-                                      &parsed_lines[i].length, MAX_LINE_LENGTH);
+    take_separated_numbers(&line, " ", parsed_lines[i].numbers,
+                           &parsed_lines[i].length, MAX_LINE_LENGTH);
   }
 
   return (parsed_input){
