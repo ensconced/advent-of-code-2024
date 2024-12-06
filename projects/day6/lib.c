@@ -1,8 +1,8 @@
 #include "./lib.h"
 #include "./parser.h"
+#include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
-#include <unistd.h>
 
 typedef struct guard_state {
   int x;
@@ -55,7 +55,7 @@ guard_state create_guard(parsed_input input) {
 }
 
 void print_state(parsed_input input) {
-  printf("\033[2J\033[1;1H");
+  printf("\033[2J\033[1;1H"); // clear terminal
   for (size_t y = 0; y < input.height; y++) {
     for (size_t x = 0; x < input.width; x++) {
       printf("%c", input.rows[y][x]);
@@ -63,7 +63,6 @@ void print_state(parsed_input input) {
     printf("\n");
   }
   printf("\n");
-  sleep(0.5);
 }
 
 void advance_guard(guard_state *guard, parsed_input input) {
@@ -82,6 +81,11 @@ void advance_guard(guard_state *guard, parsed_input input) {
   guard->y += guard->y_step;
 }
 
+bool guard_is_on_board(parsed_input input, guard_state *guard) {
+  return guard->x >= 0 && guard->x < (int)input.width && guard->y >= 0 &&
+         guard->y < (int)input.height;
+}
+
 int part1(char *input_path) {
   parsed_input input = parse_input(input_path);
   guard_state guard = create_guard(input);
@@ -89,7 +93,6 @@ int part1(char *input_path) {
   while (guard.x >= 0 && guard.x < (int)input.width && guard.y >= 0 &&
          guard.y < (int)input.height) {
     input.rows[guard.y][guard.x] = 'X';
-    print_state(input);
     advance_guard(&guard, input);
   }
 
