@@ -90,8 +90,7 @@ int part1(char *input_path) {
   parsed_input input = parse_input(input_path);
   guard_state guard = create_guard(input);
 
-  while (guard.x >= 0 && guard.x < (int)input.width && guard.y >= 0 &&
-         guard.y < (int)input.height) {
+  while (guard_is_on_board(input, &guard)) {
     input.rows[guard.y][guard.x] = 'X';
     advance_guard(&guard, input);
   }
