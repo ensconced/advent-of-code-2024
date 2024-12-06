@@ -3,91 +3,48 @@
 #include <stdbool.h>
 #include <stdio.h>
 
-typedef struct node {
-  unsigned long id;
-  struct node **edges;
-  size_t edges_len;
-} node;
-
-typedef struct node_list {
-  node **nodes;
-  size_t nodes_len;
-} node_list;
-
-node *find_or_add_node(parsed_input input, node_list *graph,
-                       unsigned long node_id) {
-  for (size_t i = 0; i < graph->nodes_len; i++) {
-    if (graph->nodes[i]->id == node_id)
-      return graph->nodes[i];
-  }
-  node *new_node = malloc(sizeof(node));
-  *new_node = (node){
-      .edges = malloc(sizeof(node *) * input.pairs_len),
-      .edges_len = 0,
-      .id = node_id,
-  };
-  graph->nodes[graph->nodes_len++] = new_node;
-  return graph->nodes[graph->nodes_len - 1];
-}
-
-void add_edge(node *before_node, node *after_node) {
-  before_node->edges[before_node->edges_len++] = after_node;
-}
-
-node_list build_graph(parsed_input input) {
-  node **nodes = malloc(sizeof(node *) * input.pairs_len);
-  node_list graph = {.nodes = nodes};
+unsigned long max_node_id(parsed_input input) {
+  unsigned long max = 0;
   for (size_t i = 0; i < input.pairs_len; i++) {
     ordered_pair pair = input.pairs[i];
-    node *before_node = find_or_add_node(input, &graph, pair.before);
-    node *after_node = find_or_add_node(input, &graph, pair.after);
-    add_edge(before_node, after_node);
+    if (pair.before > max)
+      max = pair.before;
+    if (pair.after > max)
+      max = pair.after;
   }
-  return graph;
+  return max;
 }
 
-node *find_node_by_id(unsigned long id, node_list graph) {
-  for (size_t i = 0; i < graph.nodes_len; i++) {
-    node *n = graph.nodes[i];
-    if (n->id == id)
-      return n;
+bool *build_adjacency_matrix(parsed_input input, unsigned long max) {
+  bool *adjacency_matrix = calloc((max + 1) * (max + 1), sizeof(bool));
+  for (size_t i = 0; i < input.pairs_len; i++) {
+    ordered_pair pair = input.pairs[i];
+    adjacency_matrix[pair.before * max + pair.after] = true;
   }
-  return NULL;
+  return adjacency_matrix;
 }
 
-node *find_path_to_node_with_id(node *from_node, unsigned long to_node_id) {
-  for (size_t i = 0; i < from_node->edges_len; i++) {
-    node *neighbour = from_node->edges[i];
-    if (neighbour->id == to_node_id)
-      return neighbour;
-    node *found = find_path_to_node_with_id(neighbour, to_node_id);
-    if (found != NULL)
-      return found;
-  }
-  return NULL;
-}
-
-bool is_valid_update(update upd, node_list graph) {
-  if (upd.len < 2)
-    return true;
-  node *current_node = find_node_by_id(upd.values[0], graph);
-  for (size_t i = 1; i < upd.len; i++) {
-    current_node = find_path_to_node_with_id(current_node, upd.values[i]);
-    if (current_node == NULL)
-      return false;
+bool is_valid_update(update upd, bool *adjacency_matrix, unsigned long max) {
+  for (size_t j = 1; j < upd.len; j++) {
+    for (size_t i = 0; i < j; i++) {
+      if (adjacency_matrix[upd.values[j] * max + upd.values[i]]) {
+        return false;
+      }
+    }
   }
   return true;
 }
 
 int part1(char *input_path) {
   parsed_input input = parse_input(input_path);
-  node_list graph = build_graph(input);
+  unsigned long max = max_node_id(input);
+  bool *adjacency_matrix = build_adjacency_matrix(input, max);
 
   int sum = 0;
 
   for (size_t i = 0; i < input.updates_len; i++) {
     update upd = input.updates[i];
-    if (is_valid_update(upd, graph)) {
+    if (is_valid_update(upd, adjacency_matrix, max)) {
       sum += upd.values[upd.len / 2];
     }
   }
