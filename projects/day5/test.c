@@ -8,5 +8,5 @@ int main(void) {
   assert(part1("./inputs/example_input.txt") == 143);
   assert(part1("./inputs/input.txt") == 6242);
   assert(part2("./inputs/example_input.txt") == 123);
-  printf("part 2: %d\n", part2("./inputs/input.txt"));
+  assert(part2("./inputs/input.txt") == 5169);
 }
