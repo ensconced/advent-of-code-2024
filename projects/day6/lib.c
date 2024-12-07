@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
 
 typedef struct position {
   int x;
@@ -76,6 +77,7 @@ void print_state(parsed_input input, guard_state guard) {
     printf("\n");
   }
   printf("\n");
+  usleep(1000 * 50);
 }
 
 position next_position(guard_state *guard) {
@@ -103,7 +105,8 @@ void rotate(guard_state *guard) {
 
 void advance_guard(guard_state *guard, parsed_input input) {
   if (within_bounds(next_position(guard), input) &&
-      char_at_position(next_position(guard), input) == '#') {
+      (char_at_position(next_position(guard), input) == '#' ||
+       char_at_position(next_position(guard), input) == 'O')) {
     rotate(guard);
   } else {
     guard->pos.x += guard->x_step;
@@ -111,8 +114,12 @@ void advance_guard(guard_state *guard, parsed_input input) {
   }
 }
 
-bool equals(guard_state a, guard_state b) {
-  return a.pos.x == b.pos.x && a.pos.y == b.pos.y && a.x_step == b.x_step &&
+bool position_equals(position a, position b) {
+  return a.x == b.x && a.y == b.y;
+}
+
+bool guard_equals(guard_state a, guard_state b) {
+  return position_equals(a.pos, b.pos) && a.x_step == b.x_step &&
          a.y_step == b.y_step;
 }
 
@@ -125,7 +132,7 @@ bool has_cycle(guard_state tortoise, parsed_input input) {
     advance_guard(&tortoise, input);
     advance_guard(&hare, input);
     advance_guard(&hare, input);
-    if (equals(tortoise, hare))
+    if (guard_equals(tortoise, hare))
       return true;
   }
 }
@@ -139,14 +146,17 @@ bool contains(position pos, position *pos_arr, size_t pos_arr_len) {
   return false;
 }
 
-int part1(char *input_path) {
-  parsed_input input = parse_input(input_path);
-  guard_state guard = create_guard(input);
-
+void trace_path(parsed_input input, guard_state guard) {
   while (within_bounds(guard.pos, input)) {
     input.rows[guard.pos.y][guard.pos.x] = 'X';
     advance_guard(&guard, input);
   }
+}
+
+int part1(char *input_path) {
+  parsed_input input = parse_input(input_path);
+  guard_state guard = create_guard(input);
+  trace_path(input, guard);
 
   int count = 0;
   for (size_t y = 0; y < input.height; y++) {
@@ -161,27 +171,26 @@ int part1(char *input_path) {
 
 int part2(char *input_path) {
   parsed_input input = parse_input(input_path);
-  guard_state guard = create_guard(input);
+  guard_state initial_guard = create_guard(input);
+  trace_path(input, initial_guard);
 
-  position *obstacle_success_positions =
-      malloc(sizeof(position) * input.height * input.width);
-  size_t obstacle_success_positions_len = 0;
-
-  position next;
-  while (next = next_position(&guard), within_bounds(next, input)) {
-    if (input.rows[next.y][next.x] != '#' &&
-        !contains(next, obstacle_success_positions,
-                  obstacle_success_positions_len)) {
-      input.rows[next.y][next.x] = '#';
-      // TODO - should only test each position once (or dedupe at the end)
-      if (has_cycle(guard, input)) {
-        obstacle_success_positions[obstacle_success_positions_len++] = next;
+  int cycles_created = 0;
+  for (size_t y = 0; y < input.height; y++) {
+    for (size_t x = 0; x < input.width; x++) {
+      position pos = {.x = (int)x, .y = (int)y};
+      char ch = char_at_position(pos, input);
+      if (ch == 'X' && !position_equals(pos, initial_guard.pos)) {
+        guard_state fresh_guard = initial_guard;
+        // create obstacle
+        input.rows[pos.y][pos.x] = 'O';
+        if (has_cycle(fresh_guard, input)) {
+          cycles_created++;
+        }
+        // clear obstacle
+        input.rows[pos.y][pos.x] = '.';
       }
-      // clear obstacle
-      input.rows[next.y][next.x] = '.';
     }
-    advance_guard(&guard, input);
   }
 
-  return (int)obstacle_success_positions_len;
+  return cycles_created;
 }
