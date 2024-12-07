@@ -24,8 +24,9 @@ unsigned long min(unsigned long a, unsigned long b, unsigned long c) {
 }
 
 unsigned long concat(unsigned long a, unsigned long b) {
-  char result[128];
-  snprintf(result, 100, "%lu%lu", a, b);
+  size_t max_length_unsigned_long = 20;
+  char result[max_length_unsigned_long * 2 + 1];
+  snprintf(result, max_length_unsigned_long * 2, "%lu%lu", a, b);
   return strtoul(result, NULL, 10);
 }
 
