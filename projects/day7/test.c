@@ -5,5 +5,6 @@
 
 int main(void) {
   printf("testing day 7\n");
-  printf("part 1: %d\n", part1("./inputs/example_input.txt"));
+  assert(part1("./inputs/example_input.txt") == 3749);
+  assert(part1("./inputs/input.txt") == 12940396350192);
 }
