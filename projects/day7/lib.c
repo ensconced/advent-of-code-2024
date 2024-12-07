@@ -7,24 +7,27 @@ typedef struct node {
   size_t depth;
 } node;
 
-unsigned long max(unsigned long a, unsigned long b, unsigned long c) {
-  if (a >= b && a >= c)
-    return a;
-  if (b >= a && b >= c)
-    return b;
-  return c;
+unsigned long max(unsigned long *vals, size_t len) {
+  unsigned long res = vals[0];
+  for (size_t i = 1; i < len; i++) {
+    if (vals[i] > res) {
+      res = vals[i];
+    }
+  }
+  return res;
 }
-
-unsigned long min(unsigned long a, unsigned long b, unsigned long c) {
-  if (a <= b && a <= c)
-    return a;
-  if (b <= a && b <= c)
-    return b;
-  return c;
+unsigned long min(unsigned long *vals, size_t len) {
+  unsigned long res = vals[0];
+  for (size_t i = 1; i < len; i++) {
+    if (vals[i] < res) {
+      res = vals[i];
+    }
+  }
+  return res;
 }
 
 unsigned long concat(unsigned long a, unsigned long b) {
-  size_t max_length_unsigned_long = 20;
+  static size_t max_length_unsigned_long = 20;
   char result[max_length_unsigned_long * 2 + 1];
   snprintf(result, max_length_unsigned_long * 2, "%lu%lu", a, b);
   return strtoul(result, NULL, 10);
@@ -35,9 +38,16 @@ unsigned long lower_bound(node n, line input_line, bool allow_concat) {
   for (size_t i = n.depth; i < input_line.operands_len; i++) {
     unsigned long mult_result = result * input_line.operands[i];
     unsigned long sum_result = result + input_line.operands[i];
-    unsigned long concat_result =
-        allow_concat ? concat(result, input_line.operands[i]) : sum_result;
-    result = min(mult_result, sum_result, concat_result);
+
+    if (allow_concat) {
+      unsigned long concat_result =
+          allow_concat ? concat(result, input_line.operands[i]) : sum_result;
+      unsigned long results[3] = {mult_result, sum_result, concat_result};
+      result = min(results, 3);
+    } else {
+      unsigned long results[2] = {mult_result, sum_result};
+      result = min(results, 2);
+    }
   }
   return result;
 }
@@ -47,9 +57,15 @@ unsigned long upper_bound(node n, line input_line, bool allow_concat) {
   for (size_t i = n.depth; i < input_line.operands_len; i++) {
     unsigned long mult_result = result * input_line.operands[i];
     unsigned long sum_result = result + input_line.operands[i];
-    unsigned long concat_result =
-        allow_concat ? concat(result, input_line.operands[i]) : sum_result;
-    result = max(mult_result, sum_result, concat_result);
+    if (allow_concat) {
+      unsigned long concat_result =
+          allow_concat ? concat(result, input_line.operands[i]) : sum_result;
+      unsigned long results[3] = {mult_result, sum_result, concat_result};
+      result = max(results, 3);
+    } else {
+      unsigned long results[2] = {mult_result, sum_result};
+      result = max(results, 2);
+    }
   }
   return result;
 }
