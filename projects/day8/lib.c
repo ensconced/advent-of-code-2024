@@ -1,12 +1,17 @@
 #include "./lib.h"
 #include "./parser.h"
+#include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 
-typedef struct antenna {
-  char ch;
+typedef struct vec {
   int x;
   int y;
+} vec;
+
+typedef struct antenna {
+  char ch;
+  vec pos;
 } antenna;
 
 typedef struct antenna_list {
@@ -19,6 +24,16 @@ typedef struct grouped_antennas {
   size_t len;
 } grouped_antennas;
 
+typedef struct antenna_pair {
+  antenna a;
+  antenna b;
+} antenna_pair;
+
+typedef struct antenna_pair_list {
+  antenna_pair *buffer;
+  size_t len;
+} antenna_pair_list;
+
 antenna_list locate_antennas(parsed_input input) {
   antenna_list antennas = {
       .buffer = malloc(sizeof(antenna) * input.height * input.width),
@@ -29,8 +44,7 @@ antenna_list locate_antennas(parsed_input input) {
       if (ch != '.') {
         antennas.buffer[antennas.len++] = (antenna){
             .ch = ch,
-            .x = (int)x,
-            .y = (int)y,
+            .pos = {.x = (int)x, .y = (int)y},
         };
       }
     }
@@ -69,40 +83,88 @@ grouped_antennas group_antennas(antenna_list antennas) {
   return result;
 }
 
-void draw_antinodes_for_antenna_pair(antenna a, antenna b, parsed_input input) {
-  int x_step = b.x - a.x;
-  int y_step = b.y - a.y;
-  int antinode_b_x = b.x + x_step;
-  int antinode_b_y = b.y + y_step;
-  int antinode_a_x = a.x - x_step;
-  int antinode_a_y = a.y - y_step;
+bool is_within_grid(vec pos, parsed_input input) {
+  return pos.x >= 0 && pos.x < (int)input.width && pos.y >= 0 &&
+         pos.y < (int)input.height;
+}
 
-  if (antinode_a_x >= 0 && antinode_a_x < (int)input.width &&
-      antinode_a_y >= 0 && antinode_a_y < (int)input.height) {
-    input.rows[antinode_a_y][antinode_a_x] = '#';
+vec translate(vec v, vec d) {
+  return (vec){
+      .x = v.x + d.x,
+      .y = v.y + d.y,
+  };
+}
+
+vec scale(vec v, int scalar) {
+  return (vec){
+      .x = v.x * scalar,
+      .y = v.y * scalar,
+  };
+}
+
+int greatest_common_divisor(int a, int b) {
+  int bigger = a > b ? a : b;
+  int smaller = bigger == a ? b : a;
+  if (smaller == 0)
+    return bigger;
+  return greatest_common_divisor(bigger % smaller, smaller);
+}
+
+vec simplify(vec v) {
+  int gcd = greatest_common_divisor(abs(v.x), abs(v.y));
+  return (vec){.x = v.x / gcd, .y = v.y / gcd};
+}
+
+void draw_part1_antinodes(antenna a, antenna b, parsed_input input) {
+  vec step = {.x = b.pos.x - a.pos.x, .y = b.pos.y - a.pos.y};
+  vec antinode_a = translate(a.pos, scale(step, -1));
+  vec antinode_b = translate(b.pos, step);
+
+  if (is_within_grid(antinode_a, input)) {
+    input.rows[antinode_a.y][antinode_a.x] = '#';
   }
-  if (antinode_b_x >= 0 && antinode_b_x < (int)input.width &&
-      antinode_b_y >= 0 && antinode_b_y < (int)input.height) {
-    input.rows[antinode_b_y][antinode_b_x] = '#';
+  if (is_within_grid(antinode_b, input)) {
+    input.rows[antinode_b.y][antinode_b.x] = '#';
   }
 }
 
-int part1(char *input_path) {
-  parsed_input input = parse_input(input_path);
+void draw_part2_antinodes(antenna a, antenna b, parsed_input input) {
+  vec step = {.x = b.pos.x - a.pos.x, .y = b.pos.y - a.pos.y};
+  vec simplified_step = simplify(step);
+  vec reversed_simplified_step = scale(simplified_step, -1);
+  for (vec pos = a.pos; is_within_grid(pos, input);
+       pos = translate(pos, simplified_step)) {
+    input.rows[pos.y][pos.x] = '#';
+  }
+  for (vec pos = a.pos; is_within_grid(pos, input);
+       pos = translate(pos, reversed_simplified_step)) {
+    input.rows[pos.y][pos.x] = '#';
+  }
+}
+
+antenna_pair_list antenna_pairs(parsed_input input) {
   antenna_list antennas = locate_antennas(input);
   grouped_antennas grouped_ants = group_antennas(antennas);
+  size_t pair_count = (antennas.len * antennas.len) / 2 - antennas.len;
+  antenna_pair_list pair_list = {.buffer =
+                                     malloc(sizeof(antenna_pair) * pair_count)};
+
   for (size_t i = 0; i < grouped_ants.len; i++) {
     antenna_list group = grouped_ants.buffer[i];
     for (size_t j = 0; j < group.len; j++) {
-      for (size_t k = 0; k < group.len; k++) {
-        if (j != k) {
-          draw_antinodes_for_antenna_pair(group.buffer[j], group.buffer[k],
-                                          input);
-        }
+      for (size_t k = j + 1; k < group.len; k++) {
+        pair_list.buffer[pair_list.len++] = (antenna_pair){
+            .a = group.buffer[j],
+            .b = group.buffer[k],
+        };
       }
     }
   }
 
+  return pair_list;
+}
+
+int count_antinodes(parsed_input input) {
   int result = 0;
   for (size_t y = 0; y < input.height; y++) {
     for (size_t x = 0; x < input.width; x++) {
@@ -113,4 +175,28 @@ int part1(char *input_path) {
   }
 
   return result;
+}
+
+int part1(char *input_path) {
+  parsed_input input = parse_input(input_path);
+  antenna_pair_list pairs = antenna_pairs(input);
+
+  for (size_t i = 0; i < pairs.len; i++) {
+    antenna_pair pair = pairs.buffer[i];
+    draw_part1_antinodes(pair.a, pair.b, input);
+  }
+
+  return count_antinodes(input);
+}
+
+int part2(char *input_path) {
+  parsed_input input = parse_input(input_path);
+  antenna_pair_list pairs = antenna_pairs(input);
+
+  for (size_t i = 0; i < pairs.len; i++) {
+    antenna_pair pair = pairs.buffer[i];
+    draw_part2_antinodes(pair.a, pair.b, input);
+  }
+
+  return count_antinodes(input);
 }
