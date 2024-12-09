@@ -20,6 +20,16 @@ void append(LinkedList *list, LinkedListNode *new_tail) {
   }
 }
 
+void insert_after(LinkedListNode *ref_node, LinkedListNode *new_node) {
+  LinkedListNode *follower = ref_node->next;
+  ref_node->next = new_node;
+  new_node->prev = ref_node;
+  if (follower != NULL) {
+    new_node->next = follower;
+    follower->prev = new_node;
+  }
+}
+
 void remove_node(LinkedList *list, LinkedListNode *node) {
   if (node->prev) {
     node->prev->next = node->next;

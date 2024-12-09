@@ -15,5 +15,6 @@ typedef struct {
 LinkedListNode *find_tail(LinkedList *list);
 void append(LinkedList *list, LinkedListNode *new_tail);
 void remove_node(LinkedList *list, LinkedListNode *node);
+void insert_after(LinkedListNode *ref_node, LinkedListNode *new_node);
 void add_at_head(LinkedList *list, LinkedListNode *new_node);
 size_t length(LinkedList *list);
