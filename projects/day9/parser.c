@@ -21,6 +21,7 @@ LinkedList *parse_input(char *input_path) {
       *b = (block){
           .id = (int)i / 2,
           .size = size,
+          .moved = false,
 
       };
     } else {

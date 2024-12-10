@@ -12,13 +12,7 @@ void print_list(LinkedList *block_list) {
     for (size_t i = 0; i < blk->size; i++) {
       if (blk->id == -1) {
         printf("\033[0;37m");
-        if (i == 0) {
-          printf("[");
-        }
-        printf(" ");
-        if (i == blk->size - 1) {
-          printf("]");
-        }
+        printf(".");
 
       } else {
         switch (blk->id % 6) {
@@ -52,7 +46,7 @@ void print_list(LinkedList *block_list) {
     }
   }
   printf("\n");
-  usleep(1000 * 1000);
+  usleep(1000 * 5000);
 }
 
 size_t min(size_t a, size_t b) { return a < b ? a : b; }
@@ -68,8 +62,20 @@ LinkedListNode *find_free_block_within_range(LinkedListNode *start_node,
   return NULL;
 }
 
-void distribute_file_into_free_block(LinkedListNode *free_node,
+LinkedListNode *find_free_block_by_min_size(LinkedListNode *start_node,
+                                            size_t min_size) {
+  for (LinkedListNode *curr = start_node; curr != NULL; curr = curr->next) {
+    block *blk = curr->data;
+    if (blk->id == -1 && blk->size >= min_size)
+      return curr;
+  }
+  return NULL;
+}
+
+void distribute_file_into_free_block(LinkedList *list,
+                                     LinkedListNode *free_node,
                                      block *file_block) {
+  // print_list(list);
   block *free_block = free_node->data;
   size_t amount_to_move = min(file_block->size, free_block->size);
 
@@ -85,11 +91,12 @@ void distribute_file_into_free_block(LinkedListNode *free_node,
     insert_after(free_node, new_free_node);
   }
   free_block->size = amount_to_move;
+  file_block->moved = true;
 }
 
-void distribute_file_into_free_blocks(LinkedListNode *file_node,
-                                      LinkedListNode **free_node_search_head,
-                                      LinkedList *list) {
+void compact_file_allowing_fragmentation(LinkedListNode *file_node,
+                                         LinkedListNode **free_node_search_head,
+                                         LinkedList *list) {
   block *file_block = file_node->data;
 
   while (file_block->size > 0) {
@@ -97,9 +104,19 @@ void distribute_file_into_free_blocks(LinkedListNode *file_node,
         find_free_block_within_range(*free_node_search_head, file_node);
     if (*free_node_search_head == NULL)
       return;
-    distribute_file_into_free_block(*free_node_search_head, file_block);
+    distribute_file_into_free_block(list, *free_node_search_head, file_block);
   }
   remove_node(list, file_node);
+}
+
+void move_entire_file_into_free_block(LinkedListNode *file_node,
+                                      LinkedList *list) {
+  block *file_block = file_node->data;
+  LinkedListNode *free_node =
+      find_free_block_by_min_size(list->head, file_block->size);
+  if (free_node) {
+    distribute_file_into_free_block(list, free_node, file_block);
+  }
 }
 
 unsigned long checksum(LinkedList *block_list) {
@@ -117,18 +134,34 @@ unsigned long checksum(LinkedList *block_list) {
   return sum;
 }
 
-unsigned long part1(char *input_path) {
-  LinkedList *block_list = parse_input(input_path);
+void compact_files(LinkedList *block_list, bool allow_fragmentation) {
   LinkedListNode *free_node_search_head = block_list->head;
 
   for (LinkedListNode *curr = find_tail(block_list);
        curr != NULL && free_node_search_head != NULL; curr = curr->prev) {
     block *blk = curr->data;
-    if (blk->id != -1) {
-      distribute_file_into_free_blocks(curr, &free_node_search_head,
-                                       block_list);
+    if (blk->id != -1 && !blk->moved) {
+      if (allow_fragmentation) {
+        compact_file_allowing_fragmentation(curr, &free_node_search_head,
+                                            block_list);
+      } else {
+        move_entire_file_into_free_block(curr, block_list);
+        blk->moved = true;
+      }
     }
   }
+}
 
+unsigned long part1(char *input_path) {
+  LinkedList *block_list = parse_input(input_path);
+  compact_files(block_list, true);
+  return checksum(block_list);
+}
+
+// TODO - when moving a file block into free blocks, it should leave free space
+// that can then be re-used...
+unsigned long part2(char *input_path) {
+  LinkedList *block_list = parse_input(input_path);
+  compact_files(block_list, false);
   return checksum(block_list);
 }
