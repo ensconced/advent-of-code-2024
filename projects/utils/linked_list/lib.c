@@ -30,6 +30,19 @@ void insert_after(LinkedListNode *ref_node, LinkedListNode *new_node) {
   }
 }
 
+void insert_before(LinkedList *list, LinkedListNode *ref_node,
+                   LinkedListNode *new_node) {
+  LinkedListNode *preceder = ref_node->prev;
+  ref_node->prev = new_node;
+  new_node->next = ref_node;
+  if (preceder == NULL) {
+    list->head = new_node;
+  } else {
+    new_node->prev = preceder;
+    preceder->next = new_node;
+  }
+}
+
 void remove_node(LinkedList *list, LinkedListNode *node) {
   if (node->prev) {
     node->prev->next = node->next;
