@@ -3,64 +3,6 @@
 #include <stdio.h>
 #include <unistd.h>
 
-void print_list(LinkedList *block_list) {
-  printf("\033[2J\033[1;1H"); // clear terminal
-  for (LinkedListNode *curr = block_list->head; curr != NULL;
-       curr = curr->next) {
-    block *blk = curr->data;
-
-    for (size_t i = 0; i < blk->size; i++) {
-      if (blk->id == -1) {
-        printf("\033[0;37m");
-        if (i == 0) {
-          printf("[");
-        }
-        printf(".");
-        if (i == blk->size - 1) {
-          printf("]");
-        }
-
-      } else {
-        switch (blk->id % 6) {
-        case 5: {
-          printf("\033[0;31m");
-          break;
-        }
-        case 4: {
-          printf("\033[0;32m");
-          break;
-        }
-        case 3: {
-          printf("\033[0;33m");
-          break;
-        }
-        case 2: {
-          printf("\033[0;34m");
-          break;
-        }
-        case 1: {
-          printf("\033[0;35m");
-          break;
-        }
-        case 0: {
-          printf("\033[0;36m");
-          break;
-        }
-        }
-        if (i == 0) {
-          printf("[");
-        }
-        printf("X");
-        if (i == blk->size - 1) {
-          printf("]");
-        }
-      }
-    }
-  }
-  printf("\n");
-  usleep(1000 * 5000);
-}
-
 size_t min(size_t a, size_t b) { return a < b ? a : b; }
 
 LinkedListNode *find_free_block_within_range(LinkedList *list,
@@ -69,7 +11,7 @@ LinkedListNode *find_free_block_within_range(LinkedList *list,
   for (LinkedListNode *curr = list->head; curr != NULL && curr != end_node;
        curr = curr->next) {
     block *blk = curr->data;
-    if (blk->id == -1 && blk->size > min_size)
+    if (blk->id == -1 && blk->size >= min_size)
       return curr;
   }
   return NULL;
@@ -112,6 +54,7 @@ void move_portion_into_first_free_block(LinkedListNode *file_node,
   // repurpose the free block as it now contains the file data
   free_block->id = file_block->id;
   free_block->size = amount_to_move;
+  free_block->moved = true;
 
   // repurpose the file block as the new free block
   file_block->id = -1;
@@ -124,10 +67,11 @@ unsigned long checksum(LinkedList *block_list) {
   for (LinkedListNode *curr = block_list->head; curr != NULL;
        curr = curr->next) {
     block *blk = curr->data;
-    if (blk->id != -1) {
-      for (int i = 0; i < (int)blk->size; i++) {
-        sum += (idx++) * (size_t)blk->id;
+    for (int i = 0; i < (int)blk->size; i++) {
+      if (blk->id != -1) {
+        sum += idx * (size_t)blk->id;
       }
+      idx++;
     }
   }
   return sum;
@@ -137,8 +81,7 @@ void compact_files(LinkedList *block_list, bool part2) {
   for (LinkedListNode *curr = find_tail(block_list); curr != NULL;
        curr = curr->prev) {
     block *blk = curr->data;
-    if (blk->id != -1 && !blk->moved) {
-      // print_list(block_list);
+    if (blk->id != -1 && !(part2 && blk->moved)) {
       move_portion_into_first_free_block(curr, block_list,
                                          part2 ? blk->size : 0);
     }
