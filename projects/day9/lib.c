@@ -63,37 +63,27 @@ void print_list(LinkedList *block_list) {
 
 size_t min(size_t a, size_t b) { return a < b ? a : b; }
 
-LinkedListNode *find_free_block_within_range(LinkedListNode *start_node,
-                                             LinkedListNode *end_node) {
-  for (LinkedListNode *curr = start_node; curr != NULL && curr != end_node;
+LinkedListNode *find_free_block_within_range(LinkedList *list,
+                                             LinkedListNode *end_node,
+                                             size_t min_size) {
+  for (LinkedListNode *curr = list->head; curr != NULL && curr != end_node;
        curr = curr->next) {
     block *blk = curr->data;
-    if (blk->id == -1 && blk->size > 0)
-      return curr;
-  }
-  return NULL;
-}
-
-LinkedListNode *find_free_block_by_min_size(LinkedListNode *start_node,
-                                            size_t min_size) {
-  for (LinkedListNode *curr = start_node; curr != NULL; curr = curr->next) {
-    block *blk = curr->data;
-    if (blk->id == -1 && blk->size >= min_size)
+    if (blk->id == -1 && blk->size > min_size)
       return curr;
   }
   return NULL;
 }
 
 void move_portion_into_first_free_block(LinkedListNode *file_node,
-                                        LinkedListNode **free_node_search_head,
-                                        LinkedList *list) {
-  *free_node_search_head =
-      find_free_block_within_range(*free_node_search_head, file_node);
-  if (*free_node_search_head == NULL)
+                                        LinkedList *list, size_t min_size) {
+  LinkedListNode *free_node =
+      find_free_block_within_range(list, file_node, min_size);
+  if (free_node == NULL)
     return;
 
   block *file_block = file_node->data;
-  block *free_block = (*free_node_search_head)->data;
+  block *free_block = free_node->data;
 
   size_t amount_to_move = min(file_block->size, free_block->size);
 
@@ -104,7 +94,7 @@ void move_portion_into_first_free_block(LinkedListNode *file_node,
     *remainder_free_block = (block){.size = free_block_remainder, .id = -1};
     LinkedListNode *remainder_free_node = malloc(sizeof(LinkedListNode));
     *remainder_free_node = (LinkedListNode){.data = remainder_free_block};
-    insert_after((*free_node_search_head), remainder_free_node);
+    insert_after(free_node, remainder_free_node);
   }
 
   size_t file_block_remainder = file_block->size - amount_to_move;
@@ -143,31 +133,26 @@ unsigned long checksum(LinkedList *block_list) {
   return sum;
 }
 
-void compact_files(LinkedList *block_list) {
-  LinkedListNode *free_node_search_head = block_list->head;
-
-  for (LinkedListNode *curr = find_tail(block_list);
-       curr != NULL && free_node_search_head != NULL; curr = curr->prev) {
+void compact_files(LinkedList *block_list, bool part2) {
+  for (LinkedListNode *curr = find_tail(block_list); curr != NULL;
+       curr = curr->prev) {
     block *blk = curr->data;
     if (blk->id != -1 && !blk->moved) {
       // print_list(block_list);
-      move_portion_into_first_free_block(curr, &free_node_search_head,
-                                         block_list);
+      move_portion_into_first_free_block(curr, block_list,
+                                         part2 ? blk->size : 0);
     }
   }
 }
 
 unsigned long part1(char *input_path) {
   LinkedList *block_list = parse_input(input_path);
-  compact_files(block_list);
+  compact_files(block_list, false);
   return checksum(block_list);
 }
 
-// TODO - when moving a file block into free blocks, it should leave free space
-// that can then be re-used...
 unsigned long part2(char *input_path) {
-  // LinkedList *block_list = parse_input(input_path);
-  // compact_files(block_list, false);
-  // return checksum(block_list);
-  return 0;
+  LinkedList *block_list = parse_input(input_path);
+  compact_files(block_list, true);
+  return checksum(block_list);
 }
