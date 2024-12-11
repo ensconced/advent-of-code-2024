@@ -5,9 +5,8 @@
 
 size_t min(size_t a, size_t b) { return a < b ? a : b; }
 
-LinkedListNode *find_free_block_within_range(LinkedList *list,
-                                             LinkedListNode *end_node,
-                                             size_t min_size) {
+LinkedListNode *find_free_block(LinkedList *list, LinkedListNode *end_node,
+                                size_t min_size) {
   for (LinkedListNode *curr = list->head; curr != NULL && curr != end_node;
        curr = curr->next) {
     block *blk = curr->data;
@@ -19,8 +18,7 @@ LinkedListNode *find_free_block_within_range(LinkedList *list,
 
 void move_portion_into_first_free_block(LinkedListNode *file_node,
                                         LinkedList *list, size_t min_size) {
-  LinkedListNode *free_node =
-      find_free_block_within_range(list, file_node, min_size);
+  LinkedListNode *free_node = find_free_block(list, file_node, min_size);
   if (free_node == NULL)
     return;
 
