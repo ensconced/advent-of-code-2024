@@ -3,4 +3,8 @@
 #include <assert.h>
 #include <stdio.h>
 
-int main(void) { assert(1 == 1); }
+int main(void) {
+  printf("testing day 10\n");
+  assert(part1("./inputs/example_input.txt") == 36);
+  assert(part1("./inputs/input.txt") == 468);
+}
