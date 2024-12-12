@@ -10,7 +10,8 @@ typedef enum node_state {
   FINISHED,
 } node_state;
 
-int nines_found(int x, int y, parsed_input input, node_state *node_states) {
+int count(int x, int y, parsed_input input, node_state *node_states,
+          bool part2) {
   int result = 0;
   node_states[y * (int)input.width + x] = DISCOVERED;
   char a = input.rows[y][x];
@@ -26,9 +27,9 @@ int nines_found(int x, int y, parsed_input input, node_state *node_states) {
 
     if (bx >= 0 && bx < (int)input.width && by >= 0 && by < (int)input.height) {
       char b = input.rows[by][bx];
-      if (node_states[by * (int)input.width + bx] == UNDISCOVERED) {
+      if (part2 || node_states[by * (int)input.width + bx] == UNDISCOVERED) {
         if (b - a == 1) {
-          result += nines_found(bx, by, input, node_states);
+          result += count(bx, by, input, node_states, part2);
         }
       }
     }
@@ -38,8 +39,7 @@ int nines_found(int x, int y, parsed_input input, node_state *node_states) {
   return result;
 }
 
-int part1(char *input_path) {
-  parsed_input input = parse_input(input_path);
+int count_all(parsed_input input, bool part2) {
   node_state *node_states =
       calloc(input.height * input.width, sizeof(node_state));
 
@@ -48,10 +48,20 @@ int part1(char *input_path) {
     for (int x = 0; x < (int)input.width; x++) {
       if (input.rows[y][x] == '0') {
         memset(node_states, 0, input.height * input.width * sizeof(node_state));
-        sum += nines_found(x, y, input, node_states);
+        sum += count(x, y, input, node_states, part2);
       }
     }
   }
 
   return sum;
+}
+
+int part1(char *input_path) {
+  parsed_input input = parse_input(input_path);
+  return count_all(input, false);
+}
+
+int part2(char *input_path) {
+  parsed_input input = parse_input(input_path);
+  return count_all(input, true);
 }
