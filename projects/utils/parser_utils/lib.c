@@ -98,6 +98,12 @@ unsigned long take_number(char **str_pointer) {
   return strtoul(buffer, 0, 10);
 }
 
+long take_signed_number(char **str_pointer) {
+  bool neg = maybe_take_string("-", str_pointer);
+  unsigned long num = take_number(str_pointer);
+  return neg ? -(long)num : (long)num;
+}
+
 bool maybe_take_number(char **str_pointer, unsigned long *result) {
   static const size_t buffer_capacity = 32;
   char buffer[buffer_capacity];

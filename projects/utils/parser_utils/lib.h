@@ -13,6 +13,7 @@ unsigned long take_number(char **str_pointer);
 bool maybe_take_numeric_string(char *const *str_pointer, char *result_buffer,
                                size_t result_buffer_capacity);
 bool maybe_take_number(char **str_pointer, unsigned long *result);
+long take_signed_number(char **str_pointer);
 void take_separated_numbers(char **str_pointer, char *separators,
                             unsigned long *result_buffer,
                             size_t *result_buffer_len,
