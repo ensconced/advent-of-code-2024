@@ -9,23 +9,44 @@ typedef struct vec {
   int y;
 } vec;
 
-bool can_make_way(vec pos, vec dir, parsed_input input) {
-  char space = input.map[pos.y][pos.x];
-  if (space == '.')
+bool can_move_here(int x, int y, vec dir, parsed_input input) {
+  char ch = input.map[y][x];
+  if (ch == '.')
     return true;
 
-  vec next_pos = (vec){.x = pos.x + dir.x, .y = pos.y + dir.y};
-  if (space == 'O' && can_make_way(next_pos, dir, input))
-    return true;
+  if (ch == 'O')
+    return can_move_here(x + dir.x, y + dir.y, dir, input);
+
+  if (ch == '[') {
+    if (dir.x == 0) {
+      return can_move_here(x + dir.x, y + dir.y, dir, input) &&
+             can_move_here(x + dir.x + 1, y + dir.y, dir, input);
+    } else if (dir.x == 1) {
+      return can_move_here(x + dir.x + 1, y + dir.y, dir, input);
+    } else if (dir.x == -1) {
+      return can_move_here(x + dir.x, y + dir.y, dir, input);
+    }
+  }
+
+  if (ch == ']') {
+    if (dir.x == 0) {
+      return can_move_here(x + dir.x, y + dir.y, dir, input) &&
+             can_move_here(x + dir.x - 1, y + dir.y, dir, input);
+    } else if (dir.x == 1) {
+      return can_move_here(x + dir.x, y + dir.y, dir, input);
+    } else if (dir.x == -1) {
+      return can_move_here(x + dir.x - 1, y + dir.y, dir, input);
+    }
+  }
 
   return false;
 }
 
-void make_way(vec pos, vec dir, parsed_input input) {
+void clear_space(vec pos, vec dir, parsed_input input) {
   vec new_pos = (vec){.x = pos.x + dir.x, .y = pos.y + dir.y};
   char space = input.map[new_pos.y][new_pos.x];
   if (space == 'O') {
-    make_way(new_pos, dir, input);
+    clear_space(new_pos, dir, input);
   }
   input.map[pos.y][pos.x] = '.';
   input.map[new_pos.y][new_pos.x] = 'O';
@@ -49,11 +70,11 @@ void move_robot(vec *robot_position, parsed_input input, char mvmt) {
       .y = robot_position->y + step_y,
   };
 
-  vec mvmt_vec = {.x = step_x, .y = step_y};
+  vec direction = {.x = step_x, .y = step_y};
   if (input.map[new_pos.y][new_pos.x] == '.') {
     *robot_position = new_pos;
-  } else if (can_make_way(new_pos, mvmt_vec, input)) {
-    make_way(new_pos, mvmt_vec, input);
+  } else if (can_move_here(new_pos.x, new_pos.y, direction, input)) {
+    clear_space(new_pos, direction, input);
     *robot_position = new_pos;
   }
 }
