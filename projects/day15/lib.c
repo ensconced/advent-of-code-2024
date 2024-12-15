@@ -9,30 +9,26 @@ typedef struct vec {
   int y;
 } vec;
 
-bool make_space(vec pos, vec mvmt, parsed_input input) {
+bool can_make_way(vec pos, vec dir, parsed_input input) {
   char space = input.map[pos.y][pos.x];
   if (space == '.')
     return true;
 
-  vec new_pos = (vec){.x = pos.x + mvmt.x, .y = pos.y + mvmt.y};
-  bool can_move_small_box = space == 'O' && make_space(new_pos, mvmt, input);
-  if (can_move_small_box) {
-    input.map[pos.y][pos.x] = '.';
-    input.map[new_pos.y][new_pos.x] = 'O';
+  vec next_pos = (vec){.x = pos.x + dir.x, .y = pos.y + dir.y};
+  if (space == 'O' && can_make_way(next_pos, dir, input))
     return true;
-  }
 
-  // bool can_move_wide_box_lhs = space == '[' && make_space(new_pos, mvmt,
-  // input); bool can_move_wide_box_rhs =
-  //     space == ']' &&
-  //     make_space((vec){.x = new_pos.x - 1, .y = new_pos.y}, mvmt, input);
-
-  // if ((space == 'O' && move_box(new_pos, mvmt, input))) {
-  //   input.map[pos.y][pos.x] = '.';
-  //   input.map[new_pos.y][new_pos.x] = 'O';
-  //   return true;
-  // }
   return false;
+}
+
+void make_way(vec pos, vec dir, parsed_input input) {
+  vec new_pos = (vec){.x = pos.x + dir.x, .y = pos.y + dir.y};
+  char space = input.map[new_pos.y][new_pos.x];
+  if (space == 'O') {
+    make_way(new_pos, dir, input);
+  }
+  input.map[pos.y][pos.x] = '.';
+  input.map[new_pos.y][new_pos.x] = 'O';
 }
 
 const int steps[4][3] = {
@@ -54,7 +50,10 @@ void move_robot(vec *robot_position, parsed_input input, char mvmt) {
   };
 
   vec mvmt_vec = {.x = step_x, .y = step_y};
-  if (make_space(new_pos, mvmt_vec, input)) {
+  if (input.map[new_pos.y][new_pos.x] == '.') {
+    *robot_position = new_pos;
+  } else if (can_make_way(new_pos, mvmt_vec, input)) {
+    make_way(new_pos, mvmt_vec, input);
     *robot_position = new_pos;
   }
 }
@@ -136,6 +135,9 @@ int part1(char *input_path) {
   vec robot = find_robot(input);
   input.map[robot.y][robot.x] = '.';
   for (size_t i = 0; i < input.movements_len; i++) {
+    // draw_map(input, robot);
+    // printf("\ni: %lu, next mvmt: %c\n", i, input.movements[i]);
+    // usleep(1000 * 10);
     move_robot(&robot, input, input.movements[i]);
   }
   return sum_box_coords(input);
