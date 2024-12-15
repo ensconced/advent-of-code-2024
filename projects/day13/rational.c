@@ -11,11 +11,9 @@ long gcd(long a, long b) {
     if (b == 0)
       return a;
     if (a > b) {
-      long times = a / b;
-      a -= b * times;
+      a %= b;
     } else {
-      long times = b / a;
-      b -= a * times;
+      b %= a;
     }
   }
 }

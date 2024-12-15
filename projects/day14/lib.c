@@ -22,14 +22,6 @@ void move_robot(robot *bot, int height, int width) {
   }
 }
 
-int compare_robots(const void *a, const void *b) {
-  robot *robot_a = (robot *)a;
-  robot *robot_b = (robot *)b;
-  if (robot_a->position.y != robot_b->position.y)
-    return robot_a->position.y - robot_b->position.y;
-  return robot_a->position.x - robot_b->position.x;
-}
-
 int part1(char *input_path, int height, int width) {
   parsed_input input = parse_input(input_path);
   for (size_t tick = 0; tick < 100; tick++) {
