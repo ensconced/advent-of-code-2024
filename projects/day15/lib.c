@@ -9,47 +9,50 @@ typedef struct vec {
   int y;
 } vec;
 
-bool can_move_here(int x, int y, vec dir, parsed_input input) {
+bool can_occupy_position(int x, int y, vec dir, parsed_input input);
+
+bool can_occupy_single_position(int x, int y, vec dir, parsed_input input) {
+  return can_occupy_position(x + dir.x, y + dir.y, dir, input);
+}
+
+bool can_occupy_position_within_box(int lhs_x, int y, vec dir,
+                                    parsed_input input) {
+  if (dir.x == 1) {
+    return can_occupy_single_position(lhs_x + 1, y, dir, input);
+  }
+  if (dir.x == -1) {
+    return can_occupy_single_position(lhs_x, y, dir, input);
+  }
+  return can_occupy_single_position(lhs_x, y, dir, input) &&
+         can_occupy_single_position(lhs_x + 1, y, dir, input);
+}
+
+bool can_occupy_position(int x, int y, vec dir, parsed_input input) {
   char ch = input.map[y][x];
   if (ch == '.')
     return true;
 
   if (ch == 'O')
-    return can_move_here(x + dir.x, y + dir.y, dir, input);
+    return can_occupy_single_position(x, y, dir, input);
 
-  if (ch == '[') {
-    if (dir.x == 0) {
-      return can_move_here(x + dir.x, y + dir.y, dir, input) &&
-             can_move_here(x + dir.x + 1, y + dir.y, dir, input);
-    } else if (dir.x == 1) {
-      return can_move_here(x + dir.x + 1, y + dir.y, dir, input);
-    } else if (dir.x == -1) {
-      return can_move_here(x + dir.x, y + dir.y, dir, input);
-    }
-  }
+  if (ch == '[')
+    return can_occupy_position_within_box(x, y, dir, input);
 
-  if (ch == ']') {
-    if (dir.x == 0) {
-      return can_move_here(x + dir.x, y + dir.y, dir, input) &&
-             can_move_here(x + dir.x - 1, y + dir.y, dir, input);
-    } else if (dir.x == 1) {
-      return can_move_here(x + dir.x, y + dir.y, dir, input);
-    } else if (dir.x == -1) {
-      return can_move_here(x + dir.x - 1, y + dir.y, dir, input);
-    }
-  }
+  if (ch == ']')
+    return can_occupy_position_within_box(x - 1, y, dir, input);
 
   return false;
 }
 
-void clear_space(vec pos, vec dir, parsed_input input) {
-  vec new_pos = (vec){.x = pos.x + dir.x, .y = pos.y + dir.y};
-  char space = input.map[new_pos.y][new_pos.x];
-  if (space == 'O') {
-    clear_space(new_pos, dir, input);
+void occupy_position(int x, int y, int from_x, int from_y, vec dir,
+                     parsed_input input) {
+  if (input.map[y][x] != '.') {
+    occupy_position(x + dir.x, y + dir.y, from_x + dir.x, from_y + dir.y, dir,
+                    input);
   }
-  input.map[pos.y][pos.x] = '.';
-  input.map[new_pos.y][new_pos.x] = 'O';
+
+  input.map[y][x] = input.map[from_y][from_x];
+  input.map[from_y][from_x] = '.';
 }
 
 const int steps[4][3] = {
@@ -71,10 +74,9 @@ void move_robot(vec *robot_position, parsed_input input, char mvmt) {
   };
 
   vec direction = {.x = step_x, .y = step_y};
-  if (input.map[new_pos.y][new_pos.x] == '.') {
-    *robot_position = new_pos;
-  } else if (can_move_here(new_pos.x, new_pos.y, direction, input)) {
-    clear_space(new_pos, direction, input);
+  if (can_occupy_position(new_pos.x, new_pos.y, direction, input)) {
+    occupy_position(new_pos.x, new_pos.y, robot_position->x, robot_position->y,
+                    direction, input);
     *robot_position = new_pos;
   }
 }
@@ -93,14 +95,9 @@ vec find_robot(parsed_input input) {
 
 void draw_map(parsed_input input, vec robot) {
   printf("\033[2J\033[1;1H"); // clear terminal
-
   for (int y = 0; y < (int)input.map_height; y++) {
     for (int x = 0; x < (int)input.map_width; x++) {
-      if (robot.x == x && robot.y == y) {
-        printf("@");
-      } else {
-        printf("%c", input.map[y][x]);
-      }
+      printf("%c", input.map[y][x]);
     }
     printf("\n");
   }
@@ -129,7 +126,7 @@ void widen_map(parsed_input *input) {
         row[x * 2 + 1] = '#';
         break;
       }
-      case '0': {
+      case 'O': {
         row[x * 2] = '[';
         row[x * 2 + 1] = ']';
         break;
@@ -146,6 +143,7 @@ void widen_map(parsed_input *input) {
       }
       }
     }
+    new_map[y] = row;
   }
   input->map = new_map;
   input->map_width = input->map_width * 2;
@@ -154,11 +152,10 @@ void widen_map(parsed_input *input) {
 int part1(char *input_path) {
   parsed_input input = parse_input(input_path);
   vec robot = find_robot(input);
-  input.map[robot.y][robot.x] = '.';
   for (size_t i = 0; i < input.movements_len; i++) {
-    // draw_map(input, robot);
-    // printf("\ni: %lu, next mvmt: %c\n", i, input.movements[i]);
-    // usleep(1000 * 10);
+    draw_map(input, robot);
+    printf("\ni: %lu, next mvmt: %c\n", i, input.movements[i]);
+    usleep(1000 * 10);
     move_robot(&robot, input, input.movements[i]);
   }
   return sum_box_coords(input);
@@ -169,11 +166,10 @@ int part2(char *input_path) {
   widen_map(&input);
 
   vec robot = find_robot(input);
-  input.map[robot.y][robot.x] = '.';
   for (size_t i = 0; i < input.movements_len; i++) {
-    // draw_map(input, robot);
-    // printf("\ni: %lu, next mvmt: %c\n", i, input.movements[i]);
-    // usleep(1000 * 10);
+    draw_map(input, robot);
+    printf("\ni: %lu, next mvmt: %c\n", i, input.movements[i]);
+    usleep(1000 * 500);
     move_robot(&robot, input, input.movements[i]);
   }
   return sum_box_coords(input);
