@@ -1,5 +1,6 @@
 #include "./lib.h"
 #include "./parser.h"
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -283,6 +284,31 @@ int part1(char *input_path) {
   return shortest_path_length(graph);
 }
 
+bool search_for_shortest_path(state_node *node, state_graph graph,
+                              parsed_input input, bool *on_shortest_path,
+                              int path_len) {
+  if (path_len > node->shortest_path_weight)
+    return false;
+
+  if (input.map[node->position.y][node->position.x] == 'E') {
+    on_shortest_path[node->position.y * input.map_width + node->position.x] =
+        true;
+    return true;
+  }
+
+  bool any_neighbour_leads_to_shortest_path = false;
+  for (size_t i = 0; i < node->out_edges_len; i++) {
+    edge e = node->out_edges[i];
+    if (search_for_shortest_path(e.target, graph, input, on_shortest_path,
+                                 path_len + e.weight)) {
+      any_neighbour_leads_to_shortest_path = true;
+      on_shortest_path[node->position.y * input.map_width + node->position.x] =
+          true;
+    }
+  }
+  return any_neighbour_leads_to_shortest_path;
+}
+
 int part2(char *input_path) {
   // TODO - build matrix to track path counts for each position...
   // ...then do full search, pruning wherever path length at given node exceeds
@@ -291,5 +317,20 @@ int part2(char *input_path) {
   state_graph graph = build_state_graph(input);
   min_heap heap = build_heap(graph);
   dijkstra(&heap);
-  return shortest_path_length(graph);
+
+  bool *on_shortest_path =
+      calloc((size_t)input.map_height * (size_t)input.map_width, sizeof(bool));
+
+  search_for_shortest_path(graph.start_node, graph, input, on_shortest_path, 0);
+
+  int count = 0;
+  for (int y = 0; y < input.map_height; y++) {
+    for (int x = 0; x < input.map_width; x++) {
+      if (on_shortest_path[y * input.map_width + x]) {
+        count++;
+      }
+    }
+  }
+
+  return count;
 }
