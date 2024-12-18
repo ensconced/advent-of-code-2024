@@ -1,3 +1,4 @@
+#include "./parser.h"
 #include "../utils/file_utils/lib.h"
 #include "../utils/parser_utils/lib.h"
 #include "./lib.h"
