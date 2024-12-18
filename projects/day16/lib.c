@@ -19,6 +19,8 @@ typedef struct state_node {
   edge *out_edges;
   size_t out_edges_len;
   size_t heap_idx;
+  int shortest_path_weight;
+  struct state_node *predecessor;
 } state_node;
 
 typedef struct state_graph {
@@ -28,6 +30,92 @@ typedef struct state_graph {
   state_node **end_nodes;
   size_t end_nodes_len;
 } state_graph;
+
+// TODO - could be just a pointer?
+typedef struct {
+  state_node *graph_node;
+} heap_node;
+
+typedef struct min_heap {
+  heap_node *buffer;
+  size_t capacity;
+  size_t size;
+} min_heap;
+
+min_heap heap_create(size_t capacity) {
+  return (min_heap){
+      .buffer = malloc(sizeof(heap_node) * capacity),
+      .capacity = capacity,
+      .size = 0,
+  };
+}
+
+void swap_heap_nodes(min_heap *heap, size_t i, size_t j) {
+  heap_node node_i = heap->buffer[i];
+  heap_node node_j = heap->buffer[j];
+  node_i.graph_node->heap_idx = j;
+  node_j.graph_node->heap_idx = i;
+  heap->buffer[j] = node_i;
+  heap->buffer[i] = node_j;
+}
+
+void bubble_up(min_heap *heap, size_t i) {
+  for (; i > 0; i = (i - 1) / 2) {
+    heap_node child = heap->buffer[i];
+    heap_node parent = heap->buffer[(i - 1) / 2];
+    if (child.graph_node->shortest_path_weight <
+        parent.graph_node->shortest_path_weight) {
+      swap_heap_nodes(heap, (i - 1) / 2, i);
+    } else {
+      break;
+    }
+  }
+}
+
+void sink_down(min_heap *heap, size_t i) {
+  while (2 * i + 1 < heap->size) {
+    size_t child_a_idx = 2 * i + 1;
+    size_t child_b_idx = 2 * i + 2;
+    heap_node parent = heap->buffer[i];
+    size_t smallest_child_idx =
+        child_b_idx < heap->size &&
+                heap->buffer[child_b_idx].graph_node->shortest_path_weight <
+                    heap->buffer[child_a_idx].graph_node->shortest_path_weight
+            ? child_b_idx
+            : child_a_idx;
+
+    heap_node smallest_child = heap->buffer[smallest_child_idx];
+    if (parent.graph_node->shortest_path_weight >
+        smallest_child.graph_node->shortest_path_weight) {
+      swap_heap_nodes(heap, smallest_child_idx, i);
+      i = smallest_child_idx;
+      continue;
+    }
+    break;
+  }
+}
+
+void heap_insert(min_heap *heap, heap_node node) {
+  if (heap->size == heap->capacity) {
+    fprintf(stderr, "heap is full\n");
+    exit(1);
+  }
+  heap->buffer[heap->size++] = node;
+  node.graph_node->heap_idx = heap->size - 1;
+  bubble_up(heap, heap->size - 1);
+}
+
+heap_node heap_extract(min_heap *heap) {
+  if (heap->size == 0) {
+    fprintf(stderr, "can't extract from an empty heap\n");
+    exit(1);
+  }
+  heap_node min = heap->buffer[0];
+  heap->buffer[0] = heap->buffer[heap->size - 1];
+  heap->size--;
+  sink_down(heap, 0);
+  return min;
+}
 
 state_node create_node(char direction, int x, int y) {
   // there are a max of three edges: move forwards, rotate clockwise, rotate
@@ -39,6 +127,8 @@ state_node create_node(char direction, int x, int y) {
       .out_edges_len = 0,
       .heap_idx = 0,
       .position = (vec){.x = x, .y = y},
+      .shortest_path_weight = INT32_MAX,
+      .predecessor = NULL,
   };
 }
 
@@ -47,7 +137,7 @@ void create_edge(state_node *from, state_node *to, int weight) {
       (edge){.target = to, .weight = weight};
 }
 
-const char directions[4] = {'>', 'v', '<', '^'};
+const char directions[4] = {'<', '>', '^', 'v'};
 
 vec direction_vec(char dir) {
   switch (dir) {
@@ -64,15 +154,15 @@ vec direction_vec(char dir) {
   exit(1);
 }
 
-int compare_nodes(const void *a, const void *b) {
-  state_node *node_a = (state_node *)a;
-  state_node *node_b = (state_node *)b;
-  if (node_a->position.y != node_b->position.y)
-    return node_a->position.y - node_b->position.y;
-  if (node_a->position.x != node_b->position.x)
-    return node_a->position.x - node_b->position.x;
-  if (node_a->direction != node_b->direction)
-    return node_a->direction - node_b->direction;
+int compare_nodes(const void *key, const void *candidate) {
+  state_node *key_node = (state_node *)key;
+  state_node *candidate_node = (state_node *)candidate;
+  if (key_node->position.y != candidate_node->position.y)
+    return key_node->position.y - candidate_node->position.y;
+  if (key_node->position.x != candidate_node->position.x)
+    return key_node->position.x - candidate_node->position.x;
+  if (key_node->direction != candidate_node->direction)
+    return key_node->direction - candidate_node->direction;
   return 0;
 }
 
@@ -107,7 +197,8 @@ state_graph build_state_graph(parsed_input input) {
         for (int i = 0; i < 4; i++) {
           nodes[nodes_len++] = create_node(directions[i], x, y);
           if (ch == 'S' && directions[i] == '>') {
-            start_node = &nodes[nodes_len];
+            start_node = &nodes[nodes_len - 1];
+            start_node->shortest_path_weight = 0;
           } else if (ch == 'E') {
             end_nodes[end_nodes_len++] = &nodes[nodes_len];
           }
@@ -145,23 +236,85 @@ state_graph build_state_graph(parsed_input input) {
 }
 
 void print_graph(state_graph graph) {
+  printf("starting node:\n");
+  printf("(%d, %d) %c (shortest path %d)\n", graph.start_node->position.x,
+         graph.start_node->position.y, graph.start_node->direction,
+         graph.start_node->shortest_path_weight);
+
   for (size_t i = 0; i < graph.nodes_len; i++) {
     state_node node = graph.nodes[i];
-    printf("(%d, %d) %c\n", node.position.x, node.position.y, node.direction);
+    printf("(%d, %d) %c (shortest path %d)\n", node.position.x, node.position.y,
+           node.direction, node.shortest_path_weight);
     for (size_t j = 0; j < node.out_edges_len; j++) {
       edge e = node.out_edges[j];
-      printf(" -> (%d, %d) %c\n", e.target->position.x, e.target->position.y,
-             e.target->direction);
+      printf(" -> (%d, %d) %c %d\n", e.target->position.x, e.target->position.y,
+             e.target->direction, e.weight);
     }
+  }
+}
+
+void print_shortest_path(state_node *end_node, parsed_input input) {
+  for (state_node *curr = end_node; curr != NULL; curr = curr->predecessor) {
+    input.map[curr->position.y][curr->position.x] = curr->direction;
+  }
+  for (int y = 0; y < (int)input.map_height; y++) {
+    for (int x = 0; x < (int)input.map_width; x++) {
+      printf("%c", input.map[y][x]);
+    }
+    printf("\n");
+  }
+}
+
+void relax_neighbours(state_node *node, min_heap *heap) {
+  for (size_t i = 0; i < node->out_edges_len; i++) {
+    edge e = node->out_edges[i];
+    if ((long)node->shortest_path_weight + (long)e.weight <
+        (long)e.target->shortest_path_weight) {
+      e.target->shortest_path_weight = node->shortest_path_weight + e.weight;
+      e.target->predecessor = node;
+      bubble_up(heap, e.target->heap_idx);
+    }
+  }
+}
+
+void dijkstra(min_heap *heap) {
+  while (heap->size > 0) {
+    heap_node next = heap_extract(heap);
+    relax_neighbours(next.graph_node, heap);
   }
 }
 
 int part1(char *input_path) {
   parsed_input input = parse_input(input_path);
-
   state_graph graph = build_state_graph(input);
+  min_heap heap = heap_create(graph.nodes_len);
+  for (size_t i = 0; i < graph.nodes_len; i++) {
+    heap_node node = (heap_node){
+        .graph_node = &graph.nodes[i],
+    };
+    if (graph.nodes[i].position.x == graph.start_node->position.x &&
+        graph.nodes[i].position.y == graph.start_node->position.y) {
+      printf("start node?\n");
+    }
+    heap_insert(&heap, node);
+  }
+
+  dijkstra(&heap);
+
   print_graph(graph);
-  return 0;
+
+  int min_shortest_path = INT32_MAX;
+  state_node *best_end_node;
+  for (size_t i = 0; i < graph.end_nodes_len; i++) {
+    if (graph.end_nodes[i]->shortest_path_weight < min_shortest_path) {
+      min_shortest_path = graph.end_nodes[i]->shortest_path_weight;
+      best_end_node = graph.end_nodes[i];
+    }
+  }
+
+  print_shortest_path(best_end_node, input);
+
+  return min_shortest_path;
 }
 
 int part2(char *input_path) { return 0; }
