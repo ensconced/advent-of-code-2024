@@ -234,36 +234,6 @@ state_graph build_state_graph(parsed_input input) {
   };
 }
 
-void print_graph(state_graph graph) {
-  printf("starting node:\n");
-  printf("(%d, %d) %c (shortest path %d)\n", graph.start_node->position.x,
-         graph.start_node->position.y, graph.start_node->direction,
-         graph.start_node->shortest_path_weight);
-
-  for (size_t i = 0; i < graph.nodes_len; i++) {
-    state_node node = graph.nodes[i];
-    printf("(%d, %d) %c (shortest path %d)\n", node.position.x, node.position.y,
-           node.direction, node.shortest_path_weight);
-    for (size_t j = 0; j < node.out_edges_len; j++) {
-      edge e = node.out_edges[j];
-      printf(" -> (%d, %d) %c %d\n", e.target->position.x, e.target->position.y,
-             e.target->direction, e.weight);
-    }
-  }
-}
-
-void print_shortest_path(state_node *end_node, parsed_input input) {
-  for (state_node *curr = end_node; curr != NULL; curr = curr->predecessor) {
-    input.map[curr->position.y][curr->position.x] = curr->direction;
-  }
-  for (int y = 0; y < (int)input.map_height; y++) {
-    for (int x = 0; x < (int)input.map_width; x++) {
-      printf("%c", input.map[y][x]);
-    }
-    printf("\n");
-  }
-}
-
 void relax_neighbours(state_node *node, min_heap *heap) {
   for (size_t i = 0; i < node->out_edges_len; i++) {
     edge e = node->out_edges[i];
@@ -283,37 +253,32 @@ void dijkstra(min_heap *heap) {
   }
 }
 
-int part1(char *input_path) {
-  parsed_input input = parse_input(input_path);
-  state_graph graph = build_state_graph(input);
+min_heap build_heap(state_graph graph) {
   min_heap heap = heap_create(graph.nodes_len);
   for (size_t i = 0; i < graph.nodes_len; i++) {
-    heap_node node = (heap_node){
-        .graph_node = &graph.nodes[i],
-    };
-    if (graph.nodes[i].position.x == graph.start_node->position.x &&
-        graph.nodes[i].position.y == graph.start_node->position.y) {
-      printf("start node?\n");
-    }
+    heap_node node = (heap_node){.graph_node = &graph.nodes[i]};
     heap_insert(&heap, node);
   }
+  return heap;
+}
 
-  dijkstra(&heap);
-
-  print_graph(graph);
-
+int shortest_path_length(state_graph graph) {
   int min_shortest_path = INT32_MAX;
-  state_node *best_end_node;
   for (size_t i = 0; i < graph.end_nodes_len; i++) {
     if (graph.end_nodes[i]->shortest_path_weight < min_shortest_path) {
       min_shortest_path = graph.end_nodes[i]->shortest_path_weight;
-      best_end_node = graph.end_nodes[i];
     }
   }
 
-  print_shortest_path(best_end_node, input);
-
   return min_shortest_path;
+}
+
+int part1(char *input_path) {
+  parsed_input input = parse_input(input_path);
+  state_graph graph = build_state_graph(input);
+  min_heap heap = build_heap(graph);
+  dijkstra(&heap);
+  return shortest_path_length(graph);
 }
 
 int part2(char *input_path) { return 0; }
