@@ -6,4 +6,5 @@
 int main(void) {
   printf("testing day 16\n");
   printf("part 1: %d\n", part1("./inputs/example_input.txt"));
+  printf("part 1: %d\n", part1("./inputs/input.txt"));
 }

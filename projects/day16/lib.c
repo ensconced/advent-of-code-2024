@@ -200,19 +200,18 @@ state_graph build_state_graph(parsed_input input) {
             start_node = &nodes[nodes_len - 1];
             start_node->shortest_path_weight = 0;
           } else if (ch == 'E') {
-            end_nodes[end_nodes_len++] = &nodes[nodes_len];
+            end_nodes[end_nodes_len++] = &nodes[nodes_len - 1];
           }
         }
 
-        // create rotation edges
-        create_edge(&nodes[nodes_len - 1], &nodes[nodes_len - 2], 1000);
-        create_edge(&nodes[nodes_len - 2], &nodes[nodes_len - 1], 1000);
-        create_edge(&nodes[nodes_len - 2], &nodes[nodes_len - 3], 1000);
-        create_edge(&nodes[nodes_len - 3], &nodes[nodes_len - 2], 1000);
-        create_edge(&nodes[nodes_len - 3], &nodes[nodes_len - 4], 1000);
-        create_edge(&nodes[nodes_len - 4], &nodes[nodes_len - 3], 1000);
+        create_edge(&nodes[nodes_len - 4], &nodes[nodes_len - 2], 1000);
         create_edge(&nodes[nodes_len - 4], &nodes[nodes_len - 1], 1000);
+        create_edge(&nodes[nodes_len - 3], &nodes[nodes_len - 2], 1000);
+        create_edge(&nodes[nodes_len - 3], &nodes[nodes_len - 1], 1000);
+        create_edge(&nodes[nodes_len - 2], &nodes[nodes_len - 4], 1000);
+        create_edge(&nodes[nodes_len - 2], &nodes[nodes_len - 3], 1000);
         create_edge(&nodes[nodes_len - 1], &nodes[nodes_len - 4], 1000);
+        create_edge(&nodes[nodes_len - 1], &nodes[nodes_len - 3], 1000);
       }
     }
   }
