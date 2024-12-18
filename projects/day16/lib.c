@@ -137,6 +137,8 @@ void create_edge(state_node *from, state_node *to, int weight) {
       (edge){.target = to, .weight = weight};
 }
 
+// order matters here for the bsearch comparison function - these are in order
+// of increasing ascii codepoint
 const char directions[4] = {'<', '>', '^', 'v'};
 
 vec direction_vec(char dir) {
@@ -281,4 +283,13 @@ int part1(char *input_path) {
   return shortest_path_length(graph);
 }
 
-int part2(char *input_path) { return 0; }
+int part2(char *input_path) {
+  // TODO - build matrix to track path counts for each position...
+  // ...then do full search, pruning wherever path length at given node exceeds
+  // shortest path length to that node
+  parsed_input input = parse_input(input_path);
+  state_graph graph = build_state_graph(input);
+  min_heap heap = build_heap(graph);
+  dijkstra(&heap);
+  return shortest_path_length(graph);
+}
