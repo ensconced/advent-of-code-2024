@@ -310,9 +310,6 @@ bool search_for_shortest_path(state_node *node, state_graph graph,
 }
 
 int part2(char *input_path) {
-  // TODO - build matrix to track path counts for each position...
-  // ...then do full search, pruning wherever path length at given node exceeds
-  // shortest path length to that node
   parsed_input input = parse_input(input_path);
   state_graph graph = build_state_graph(input);
   min_heap heap = build_heap(graph);
